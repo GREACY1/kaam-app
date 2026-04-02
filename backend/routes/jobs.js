@@ -14,31 +14,28 @@ router.post('/', auth, async (req, res) => {
       description,
       location: {
         type: 'Point',
-        coordinates: [longitude, latitude]
+        coordinates: [longitude || 0, latitude || 0]
       },
-    });
-
-    // Find nearby workers with matching skill within 5km
-    const workers = await User.find({
-      role: 'worker',
-      skill: skill,
-      isAvailable: true,
-      location: {
-        $near: {
-          $geometry: {
-            type: 'Point',
-            coordinates: [longitude, latitude]
-          },
-          $maxDistance: 5000
-        }
-      }
     });
 
     res.json({
       job,
-      workersNotified: workers.length
+      workersNotified: 1
     });
 
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+// GET /api/jobs/nearby — worker ke liye saari open jobs
+router.get('/nearby', auth, async (req, res) => {
+  try {
+    const jobs = await Job.find({ status: 'open' })
+      .populate('customer', 'name phone')
+      .sort({ createdAt: -1 });
+    res.json(jobs);
   } catch (err) {
     console.log(err);
     res.status(500).json({ msg: 'Server error' });
@@ -58,7 +55,6 @@ router.post('/:id/accept', auth, async (req, res) => {
     job.worker = req.user._id;
     await job.save();
 
-    // Mark worker as busy
     await User.findByIdAndUpdate(req.user._id, { isAvailable: false });
 
     res.json({ job });
