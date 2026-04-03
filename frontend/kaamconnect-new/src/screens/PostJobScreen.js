@@ -37,7 +37,7 @@ export default function PostJobScreen({ navigation }) {
     }
   };
 
-  const skills = ['Electrician', 'Plumber', 'Carpenter', 'Delivery Helper', 'Labourer'];
+  const skills = ['Electrician', 'Plumber', 'Carpenter', 'Delivery Helper', 'Labourer','AC Repair','Appliances Repair','painter','Welder','Driver','House Maid','Cook','Babysitter','Elder care Assistant','Web Developer','Data Entry operator','Decorator'];
 
   return (
     <ScrollView style={styles.container}>
