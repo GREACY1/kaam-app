@@ -11,6 +11,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "expo-document-picker": "~14.0.8",
+    "expo-image-picker": "~17.0.10",
     "nodemailer": "^8.0.4"
   }
 }
