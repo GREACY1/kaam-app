@@ -2,23 +2,32 @@ const router = require('express').Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 
-// Update location and FCM token
+// Update profile - ProfileSetupScreen ke liye
+router.put('/profile', auth, async (req, res) => {
+  try {
+    const { name, address, contact, aadhar, gender, altEmail, experience, docType, city } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { name, address, contact, aadhar, gender, altEmail, experience, docType, city, profileDone: true },
+      { new: true }
+    );
+    res.json(user);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+// Update location
 router.put('/location', auth, async (req, res) => {
   try {
     const { longitude, latitude, fcmToken } = req.body;
-
     await User.findByIdAndUpdate(req.user._id, {
-      location: {
-        type: 'Point',
-        coordinates: [longitude, latitude]
-      },
+      location: { type: 'Point', coordinates: [longitude, latitude] },
       fcmToken,
     });
-
     res.json({ msg: 'Location updated' });
-
   } catch (err) {
-    console.log(err);
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -36,14 +45,14 @@ router.get('/me', auth, async (req, res) => {
 router.get('/:id', auth, async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .select('name photo skill rating totalRatings role');
+      .select('name photo skill rating totalRatings role city');
     res.json(user);
   } catch (err) {
     res.status(500).json({ msg: 'Server error' });
   }
 });
 
-// Update availability (worker only)
+// Update availability
 router.put('/availability', auth, async (req, res) => {
   try {
     const { isAvailable } = req.body;

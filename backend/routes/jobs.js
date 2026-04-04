@@ -8,10 +8,14 @@ router.post('/', auth, async (req, res) => {
   try {
     const { skill, description, longitude, latitude } = req.body;
 
+    // Customer ki city fetch karo
+    const customer = await User.findById(req.user._id);
+
     const job = await Job.create({
       customer: req.user._id,
       skill,
       description,
+      city: customer.city || '',
       location: {
         type: 'Point',
         coordinates: [longitude || 0, latitude || 0]
@@ -29,12 +33,26 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// GET /api/jobs/nearby — worker ke liye saari open jobs
+// GET /api/jobs/nearby — worker ke liye same city ki open jobs
 router.get('/nearby', auth, async (req, res) => {
   try {
-    const jobs = await Job.find({ status: 'open' })
-      .populate('customer', 'name phone')
+    const worker = await User.findById(req.user._id);
+
+    // Same city ki jobs dhundho, aur same skill ki
+    const query = {
+      status: 'open',
+      skill: worker.skill,
+    };
+
+    // Agar worker ki city set hai toh city filter lagao
+    if (worker.city && worker.city !== '') {
+      query.city = worker.city;
+    }
+
+    const jobs = await Job.find(query)
+      .populate('customer', 'name phone contact')
       .sort({ createdAt: -1 });
+
     res.json(jobs);
   } catch (err) {
     console.log(err);
@@ -104,9 +122,12 @@ router.post('/:id/rate', auth, async (req, res) => {
       await customer.save();
     }
 
-    job.status = 'rated';
-    await job.save();
+    // Sirf tab 'rated' karo jab DONO ne rating de di ho
+    if (job.workerRating && job.customerRating) {
+      job.status = 'rated';
+    }
 
+    await job.save();
     res.json({ job });
 
   } catch (err) {
@@ -123,7 +144,7 @@ router.get('/mine', auth, async (req, res) => {
       : { customer: req.user._id };
 
     const jobs = await Job.find(query)
-      .populate('customer worker', 'name phone rating photo')
+      .populate('customer worker', 'name phone contact rating photo')
       .sort({ createdAt: -1 });
 
     res.json(jobs);
@@ -131,6 +152,25 @@ router.get('/mine', auth, async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+// GET /api/jobs/history — completed aur rated jobs
+router.get('/history', auth, async (req, res) => {
+  try {
+    const query = req.user.role === 'customer'
+      ? { customer: req.user._id, status: { $in: ['completed', 'rated'] } }
+      : { worker: req.user._id, status: { $in: ['completed', 'rated'] } };
+
+    const jobs = await Job.find(query)
+      .populate('customer', 'name contact rating')
+      .populate('worker', 'name contact rating')
+      .sort({ updatedAt: -1 });
+
+    res.json(jobs);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
