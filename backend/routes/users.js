@@ -23,10 +23,25 @@ router.put('/location', auth, async (req, res) => {
   try {
     const { longitude, latitude, fcmToken } = req.body;
     await User.findByIdAndUpdate(req.user._id, {
-      location: { type: 'Point', coordinates: [longitude, latitude] },
+      location: {
+        type: 'Point',
+        coordinates: [parseFloat(longitude) || 0, parseFloat(latitude) || 0]
+      },
       fcmToken,
     });
     res.json({ msg: 'Location updated' });
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+// Save expo push token
+router.put('/push-token', auth, async (req, res) => {
+  try {
+    const { expoPushToken } = req.body;
+    await User.findByIdAndUpdate(req.user._id, { expoPushToken });
+    console.log('Push token saved:', expoPushToken);
+    res.json({ msg: 'Token saved' });
   } catch (err) {
     res.status(500).json({ msg: 'Server error' });
   }
@@ -41,7 +56,7 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
-// Get any user profile by id
+// Get any user by id
 router.get('/:id', auth, async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
@@ -67,8 +82,8 @@ router.put('/availability', auth, async (req, res) => {
 router.post('/:id/report', auth, async (req, res) => {
   try {
     const { reason } = req.body;
-    console.log(`Report against user ${req.params.id} by ${req.user._id}: ${reason}`);
-    res.json({ msg: 'Report received. Our team will review it.' });
+    console.log(`Report against ${req.params.id}: ${reason}`);
+    res.json({ msg: 'Report received' });
   } catch (err) {
     res.status(500).json({ msg: 'Server error' });
   }
